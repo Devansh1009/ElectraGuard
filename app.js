@@ -86,6 +86,24 @@ function initUploadZone() {
         e.stopPropagation();
         loadSampleData();
     });
+
+    // SGCC Dataset — Train
+    const btnSGCC = document.getElementById('btnSGCC');
+    if (btnSGCC) {
+        btnSGCC.addEventListener('click', (e) => {
+            e.stopPropagation();
+            loadSGCCDataset();
+        });
+    }
+
+    // SGCC Dataset — Download
+    const btnDownloadSGCC = document.getElementById('btnDownloadSGCC');
+    if (btnDownloadSGCC) {
+        btnDownloadSGCC.addEventListener('click', (e) => {
+            e.stopPropagation();
+            downloadSGCCDataset();
+        });
+    }
 }
 
 function handleFile(file) {
@@ -150,6 +168,63 @@ function loadSampleData() {
         updateProgress(40, 'Running detection algorithms...');
         processAndRender(sampleData, 'Sample Data (150 Consumers)');
     }, 400);
+}
+
+function loadSGCCDataset() {
+    showProgress(true);
+    updateProgress(5, 'Generating SGCC-style dataset (500 consumers × 60 days)...');
+    showToast('info', 'Generating SGCC benchmark dataset with 6 theft attack types...');
+
+    setTimeout(() => {
+        try {
+            const { data, stats } = SGCCDatasetGenerator.generate(500, 60, 0.15);
+
+            // Remove internal metadata column before processing
+            const cleanData = data.map(row => {
+                const clean = { ...row };
+                delete clean['_attackType'];
+                return clean;
+            });
+
+            updateProgress(20, `Dataset ready: ${stats.totalConsumers} consumers, ${stats.totalThieves} thieves (${stats.theftRate})`);
+
+            // Log attack type distribution
+            console.log('📊 SGCC Dataset Stats:', stats);
+            console.log('🔍 Attack Type Distribution:', stats.attackTypes);
+
+            processAndRender(cleanData, `SGCC-Style Dataset (${stats.totalConsumers} Consumers, ${stats.theftRate} theft)`);
+        } catch (err) {
+            console.error('SGCC generation error:', err);
+            showToast('error', 'Failed to generate SGCC dataset.');
+            showProgress(false);
+        }
+    }, 300);
+}
+
+function downloadSGCCDataset() {
+    showToast('info', 'Generating SGCC dataset for download...');
+
+    setTimeout(() => {
+        try {
+            const { data, stats } = SGCCDatasetGenerator.generate(500, 60, 0.15);
+            const blob = SGCCDatasetGenerator.toXLSX(data);
+
+            // Trigger download
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `SGCC_ElectricityTheft_${stats.totalConsumers}consumers_${stats.numDays}days.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('success', `Downloaded! ${stats.totalConsumers} consumers, ${stats.totalThieves} thieves (${stats.theftRate}), ${stats.numDays} days`);
+        } catch (err) {
+            console.error('SGCC download error:', err);
+            showToast('error', 'Failed to generate SGCC dataset for download.');
+        }
+    }, 200);
 }
 
 async function processAndRender(jsonData, sourceName) {
