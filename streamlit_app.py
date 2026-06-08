@@ -371,6 +371,12 @@ with st.sidebar:
 
     if st.session_state.uploaded_file_name:
         st.success(f"📂 Loaded: {st.session_state.uploaded_file_name}")
+        if st.session_state.raw_df is not None and st.session_state.engine is None:
+            if st.button("⚡ Get Analytics", key="sidebar_analyze_btn", type="primary", use_container_width=True):
+                with st.spinner("Processing data & calculating risk scores..."):
+                    run_detection(st.session_state.raw_df, st.session_state.uploaded_file_name)
+                    st.session_state.page = "📊 Dashboard"
+                    st.rerun()
 
     st.divider()
 
