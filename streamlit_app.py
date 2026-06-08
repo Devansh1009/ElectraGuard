@@ -205,30 +205,6 @@ def get_logo_base64():
     return None
 
 logo_b64 = get_logo_base64()
-if logo_b64:
-    st.markdown(f"""
-    <style>
-        .logo-container [data-testid="stBaseButton-secondary"] {{
-            background-image: url("{logo_b64}") !important;
-            background-size: contain !important;
-            background-repeat: no-repeat !important;
-            background-position: center !important;
-            width: 200px !important;
-            height: 145px !important;
-            color: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            background-color: transparent !important;
-        }}
-        .logo-container [data-testid="stBaseButton-secondary"]:hover {{
-            background-color: transparent !important;
-            opacity: 0.85;
-        }}
-        .logo-container [data-testid="stBaseButton-secondary"] p {{
-            display: none !important;
-        }}
-    </style>
-    """, unsafe_allow_html=True)
 
 
 # ─── Session State Init ───
@@ -246,6 +222,13 @@ if "uploaded_file_name" not in st.session_state:
     st.session_state.uploaded_file_name = None
 if "page" not in st.session_state:
     st.session_state.page = "🏠 Home"
+
+# ─── Query Params Navigation ───
+if "page" in st.query_params:
+    nav_val = st.query_params["page"]
+    if nav_val == "Home":
+        st.session_state.page = "🏠 Home"
+    st.query_params.clear()
 
 
 def run_detection(df, source_name):
@@ -409,16 +392,26 @@ with st.sidebar:
 # ─── Persistent Top Logo Header ───
 col_logo1, col_logo2, col_logo3 = st.columns([1, 2, 1])
 with col_logo2:
-    st.markdown("<div class='logo-container'>", unsafe_allow_html=True)
-    if st.button("⚡ ElectraGuard", key="logo_home_btn", use_container_width=True):
-        st.session_state.page = "🏠 Home"
-        st.rerun()
+    if logo_b64:
+        logo_html = f'''
+        <div style="text-align: center; margin-bottom: 5px;">
+            <a href="?page=Home" target="_self">
+                <img src="{logo_b64}" style="width: 200px; height: auto; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
+            </a>
+        </div>
+        '''
+        st.markdown(logo_html, unsafe_allow_html=True)
+    else:
+        # Fallback to standard text logo
+        if st.button("⚡ ElectraGuard", key="logo_home_btn", use_container_width=True):
+            st.session_state.page = "🏠 Home"
+            st.rerun()
+
     margin_style = "margin-top: 10px;" if logo_b64 else "margin-top: -12px;"
     st.markdown(
         f"<p style='color: #8892a8; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; {margin_style} margin-bottom: 20px; font-weight: 600; text-align: center;'>AI-POWERED THEFT DETECTION</p>",
         unsafe_allow_html=True
     )
-    st.markdown("</div>", unsafe_allow_html=True)
 
 # ─── Page Rendering ───
 if st.session_state.page == "🏠 Home":
