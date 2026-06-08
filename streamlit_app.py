@@ -171,14 +171,12 @@ def run_lstm_training():
             st.session_state.lstm_results = results
             engine.add_lstm_scores(results["consumer_probs"])
             st.session_state.df = engine.df
-            progress_bar.progress(1.0, text="LSTM training complete!")
-            st.success(f"🎉 LSTM trained! Avg Accuracy: {results['avg_metrics']['accuracy']:.4f}, F1: {results['avg_metrics']['f1']:.4f}")
+            progress_bar.progress(1.0, text="Model training complete!")
+            st.success(f"🎉 Model trained! Avg Accuracy: {results['avg_metrics']['accuracy']:.4f}, F1: {results['avg_metrics']['f1']:.4f}")
         else:
-            st.warning("LSTM training returned no results — insufficient data.")
-    except ImportError:
-        st.error("TensorFlow not installed. Run: `pip install tensorflow-cpu`")
+            st.warning("Training returned no results — ensure data has both normal and theft consumers.")
     except Exception as e:
-        st.error(f"LSTM training failed: {e}")
+        st.error(f"Model training failed: {e}")
 
 
 # ─── Sidebar ───
