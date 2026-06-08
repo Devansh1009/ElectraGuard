@@ -60,14 +60,14 @@
             <div class="hero-content">
                 <div class="hero-badge">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                    AI-Powered Detection Engine
+                    LSTM Deep Learning Detection — Kocaman & Tümen (2020)
                 </div>
                 <h1 class="hero-title">
                     Detect Electrical
                     <span class="gradient-text">Theft Instantly</span>
                 </h1>
                 <p class="hero-subtitle">
-                    Upload your electricity consumption data in XLSX format. Our advanced anomaly detection algorithms will identify suspicious patterns, consumption irregularities, and potential theft indicators.
+                    Upload your electricity consumption data in XLSX format. Our hybrid detection engine combines an <strong>LSTM deep learning model</strong> (Kocaman & Tümen, Sadhana 2020) with statistical anomaly detection to identify suspicious patterns, consumption irregularities, and potential theft indicators — with 5-fold cross-validated accuracy.
                 </p>
 
                 <!-- Upload Zone -->
@@ -110,8 +110,8 @@
                         <div class="feature-icon" style="--accent: #00d4ff;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         </div>
-                        <h4>Anomaly Detection</h4>
-                        <p>Z-Score & IQR algorithms detect unusual consumption patterns</p>
+                        <h4>LSTM Deep Learning</h4>
+                        <p>LSTM(128) neural network learns temporal consumption patterns per the Kocaman & Tümen paper</p>
                     </div>
                     <div class="feature-card">
                         <div class="feature-icon" style="--accent: #a855f7;">
@@ -124,8 +124,8 @@
                         <div class="feature-icon" style="--accent: #f59e0b;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                         </div>
-                        <h4>Risk Scoring</h4>
-                        <p>Multi-factor risk assessment for each consumer</p>
+                        <h4>Hybrid Risk Scoring</h4>
+                        <p>LSTM probability (40%) fused with Z-Score, IQR & statistical flags (60%)</p>
                     </div>
                     <div class="feature-card">
                         <div class="feature-icon" style="--accent: #10b981;">
@@ -301,6 +301,14 @@
                         <h3>Detection Summary Report</h3>
                         <div class="report-content" id="reportContent"></div>
                     </div>
+                    <!-- LSTM Model Performance Panel -->
+                    <div class="analytics-card full-width" id="lstmPanel" style="display:none;">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -3px; margin-right: 6px; color: var(--accent-purple);"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                            LSTM Model Performance — Kocaman & Tümen Method
+                        </h3>
+                        <div class="report-content" id="lstmReportContent"></div>
+                    </div>
                     <div class="chart-card wide">
                         <div class="chart-header">
                             <h3>Risk Score Distribution</h3>
@@ -336,6 +344,8 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+    <script src="lstm_engine.js"></script>
     <script src="detection.js"></script>
     <script src="charts.js"></script>
     <script src="app.js"></script>

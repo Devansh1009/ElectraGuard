@@ -119,28 +119,54 @@ function handleFile(file) {
 
 function loadSampleData() {
     showProgress(true);
-    updateProgress(20, 'Generating sample data...');
+    updateProgress(20, 'Generating sample data with 30-day time-series...');
 
     setTimeout(() => {
         const sampleData = TheftDetectionEngine.generateSampleData(150);
-        updateProgress(60, 'Running detection algorithms...');
+        updateProgress(40, 'Running detection algorithms...');
         processAndRender(sampleData, 'Sample Data (150 Consumers)');
     }, 400);
 }
 
-function processAndRender(jsonData, sourceName) {
+async function processAndRender(jsonData, sourceName) {
     const headers = Object.keys(jsonData[0]);
 
-    updateProgress(75, 'Processing records...');
+    updateProgress(45, 'Processing records...');
     engine.processData(jsonData, headers);
     engine.calculateStats();
 
-    updateProgress(85, 'Calculating risk scores...');
+    // ──────── LSTM Training Phase (Kocaman & Tümen method) ────────
+    let lstmSuccess = false;
+    if (engine.useLSTM && typeof tf !== 'undefined') {
+        updateProgress(50, 'Initializing LSTM deep learning engine...');
+        showToast('info', 'Training LSTM model (Kocaman & Tümen method). This may take a moment...');
+
+        try {
+            lstmSuccess = await engine.runLSTMDetection((progress, message) => {
+                // Map LSTM progress (0-100) to our progress bar (50-90)
+                const mappedProgress = 50 + Math.round(progress * 0.4);
+                updateProgress(mappedProgress, `🧠 LSTM: ${message}`);
+            });
+
+            if (lstmSuccess) {
+                showToast('success', `LSTM model trained! 5-fold CV accuracy: ${(engine.lstmMetrics.accuracy * 100).toFixed(1)}%`);
+            } else {
+                showToast('warning', 'LSTM training skipped — insufficient time-series data. Using statistical methods only.');
+            }
+        } catch (err) {
+            console.error('LSTM error:', err);
+            showToast('warning', 'LSTM training encountered an error. Falling back to statistical methods.');
+        }
+    } else if (!engine.useLSTM) {
+        showToast('info', 'No time-series columns detected. Using statistical detection only.');
+    }
+
+    updateProgress(92, 'Calculating hybrid risk scores...');
     currentResults = engine.calculateRiskScores();
     currentSummary = engine.getSummary();
     window.currentResults = currentResults;
 
-    updateProgress(95, 'Building visualizations...');
+    updateProgress(96, 'Building visualizations...');
 
     setTimeout(() => {
         updateProgress(100, 'Complete!');
@@ -152,9 +178,10 @@ function processAndRender(jsonData, sourceName) {
 
             // Update nav
             const navStatus = document.getElementById('navStatus');
+            const lstmBadge = lstmSuccess ? ' · LSTM ✓' : '';
             navStatus.innerHTML = `
                 <div class="status-dot online"></div>
-                <span>${sourceName} — ${currentResults.length} records</span>
+                <span>${sourceName} — ${currentResults.length} records${lstmBadge}</span>
             `;
 
             // Update alert badge
@@ -167,7 +194,8 @@ function processAndRender(jsonData, sourceName) {
 
             // Render everything
             renderDashboard();
-            showToast('success', `Analysis complete: ${currentSummary.suspicious} suspicious cases detected out of ${currentSummary.total} consumers.`);
+            const lstmMsg = lstmSuccess ? ' (LSTM + Statistical hybrid)' : ' (Statistical methods)';
+            showToast('success', `Analysis complete${lstmMsg}: ${currentSummary.suspicious} suspicious cases out of ${currentSummary.total} consumers.`);
             showProgress(false);
         }, 300);
     }, 200);
@@ -223,6 +251,7 @@ function renderTable(data) {
     const tbody = document.getElementById('tableBody');
 
     // Columns to show
+    const hasLSTM = data.some(d => d.lstmProb !== null && d.lstmProb !== undefined);
     const columns = [
         { key: 'id', label: 'Consumer ID' },
         { key: 'name', label: 'Name' },
@@ -230,6 +259,7 @@ function renderTable(data) {
         { key: 'category', label: 'Category' },
         { key: 'consumption', label: 'Consumption (kWh)' },
         { key: 'billing', label: 'Billing' },
+        ...(hasLSTM ? [{ key: 'lstmProb', label: 'LSTM Prob.' }] : []),
         { key: 'riskScore', label: 'Risk Score' },
         { key: 'riskLevel', label: 'Risk Level' },
         { key: 'flags', label: 'Flags' }
@@ -253,6 +283,7 @@ function renderTable(data) {
             <td>${row.category}</td>
             <td>${row.consumption.toLocaleString()}</td>
             <td>${row.billing ? '₹' + row.billing.toLocaleString() : '—'}</td>
+            ${hasLSTM ? `<td>${row.lstmProb !== null && row.lstmProb !== undefined ? `<span style="font-family:'JetBrains Mono',monospace; font-size:0.8rem; color:${row.lstmProb >= 0.7 ? '#ff6b6b' : row.lstmProb >= 0.4 ? '#ffd666' : '#5de0b5'};">${(row.lstmProb * 100).toFixed(1)}%</span>` : '—'}</td>` : ''}
             <td>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <div style="width:40px; height:4px; border-radius:2px; background:rgba(255,255,255,0.05); overflow:hidden;">
@@ -445,13 +476,14 @@ function renderAnalyticsReport() {
         <div class="report-section">
             <h4>🛡️ Detection Methods Applied</h4>
             <ul style="list-style:none; padding:0;">
+                <li style="padding:4px 0;">${s.lstmEnabled ? '✅' : '⬜'} <strong>LSTM Deep Learning</strong> — Kocaman & Tümen (2020), LSTM(128), 5-fold CV ${s.lstmEnabled ? '<span class="report-metric" style="background:rgba(168,85,247,0.12); color:#c084fc;">Active</span>' : '<span style="color:var(--text-muted);">(No time-series data)</span>'}</li>
                 <li style="padding:4px 0;">✅ Z-Score Analysis (threshold: ±2σ)</li>
                 <li style="padding:4px 0;">✅ IQR Outlier Detection (1.5× multiplier)</li>
                 <li style="padding:4px 0;">✅ Consumption-to-Billing Ratio Analysis</li>
                 <li style="padding:4px 0;">✅ Sanctioned vs Actual Load Comparison</li>
                 <li style="padding:4px 0;">✅ Consumption Change Detection (>50% drop)</li>
                 <li style="padding:4px 0;">✅ Meter Status Anomaly Detection</li>
-                <li style="padding:4px 0;">✅ Multi-Factor Composite Risk Scoring (0–100)</li>
+                <li style="padding:4px 0;">✅ Hybrid Risk Scoring: ${s.lstmEnabled ? 'LSTM (40%) + Statistical (60%)' : 'Statistical only (100%)'}</li>
             </ul>
         </div>
 
@@ -460,6 +492,92 @@ function renderAnalyticsReport() {
             <p>${s.critical > 0 ? `<strong style="color:#ff6b6b;">Immediate Action Required:</strong> ${s.critical} consumers flagged as critical risk. Recommend physical meter inspection and field verification for these accounts.` : 'No critical cases found.'}</p>
             ${s.high > 0 ? `<p style="margin-top:6px;"><strong style="color:#ffb347;">High Priority:</strong> ${s.high} high-risk consumers should be scheduled for audit within the next billing cycle.</p>` : ''}
             ${s.medium > 0 ? `<p style="margin-top:6px;"><strong style="color:#ffd666;">Monitor:</strong> ${s.medium} medium-risk consumers should be monitored for patterns across future billing periods.</p>` : ''}
+        </div>
+    `;
+
+    // Render LSTM Model Performance panel if available
+    renderLSTMReport();
+}
+
+function renderLSTMReport() {
+    const panel = document.getElementById('lstmPanel');
+    const content = document.getElementById('lstmReportContent');
+    if (!panel || !content) return;
+
+    if (!currentSummary.lstmEnabled || !currentSummary.lstmMetrics) {
+        panel.style.display = 'none';
+        return;
+    }
+
+    panel.style.display = 'block';
+    const m = currentSummary.lstmMetrics;
+    const info = currentSummary.lstmModelInfo;
+
+    content.innerHTML = `
+        <div class="report-section">
+            <h4>📐 Model Architecture (per Kocaman & Tümen, Sadhana 2020)</h4>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-top:10px;">
+                ${info ? info.layers.map(l => `
+                    <div style="padding:10px 14px; border-radius:8px; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.12);">
+                        <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">${l.type}</div>
+                        <div style="font-size:0.9rem; font-weight:600; color:var(--text-primary);">${l.name}</div>
+                        <div style="font-size:0.78rem; color:var(--text-secondary);">${l.params.toLocaleString()} params</div>
+                    </div>
+                `).join('') : ''}
+            </div>
+            ${info ? `<p style="margin-top:10px;">Total parameters: <span class="report-metric" style="background:rgba(168,85,247,0.12); color:#c084fc;">${info.totalParams.toLocaleString()}</span> · Sequence length: <span class="report-metric">${info.sequenceLength}</span> · Epochs: <span class="report-metric">${info.epochs}</span> · Batch size: <span class="report-metric">${info.batchSize}</span> · Threshold: <span class="report-metric">${info.threshold.toFixed(3)}</span></p>` : ''}
+        </div>
+
+        <div class="report-section">
+            <h4>📊 5-Fold Cross-Validation Metrics</h4>
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin-top:10px;">
+                <div style="text-align:center; padding:16px; border-radius:10px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.12);">
+                    <div style="font-size:1.6rem; font-weight:700; color:#10b981; font-family:'JetBrains Mono',monospace;">${(m.accuracy * 100).toFixed(1)}%</div>
+                    <div style="font-size:0.75rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Accuracy</div>
+                </div>
+                <div style="text-align:center; padding:16px; border-radius:10px; background:rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.12);">
+                    <div style="font-size:1.6rem; font-weight:700; color:#00d4ff; font-family:'JetBrains Mono',monospace;">${(m.precision * 100).toFixed(1)}%</div>
+                    <div style="font-size:0.75rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Precision</div>
+                </div>
+                <div style="text-align:center; padding:16px; border-radius:10px; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.12);">
+                    <div style="font-size:1.6rem; font-weight:700; color:#a855f7; font-family:'JetBrains Mono',monospace;">${(m.recall * 100).toFixed(1)}%</div>
+                    <div style="font-size:0.75rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Recall</div>
+                </div>
+                <div style="text-align:center; padding:16px; border-radius:10px; background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.12);">
+                    <div style="font-size:1.6rem; font-weight:700; color:#f59e0b; font-family:'JetBrains Mono',monospace;">${(m.f1 * 100).toFixed(1)}%</div>
+                    <div style="font-size:0.75rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">F1 Score</div>
+                </div>
+            </div>
+            ${m.foldDetails ? `
+            <div style="margin-top:14px;">
+                <table style="width:100%; font-size:0.8rem; border-collapse:collapse;">
+                    <tr style="color:var(--text-muted); text-transform:uppercase; font-size:0.7rem; letter-spacing:0.5px;">
+                        <th style="text-align:left; padding:6px 10px; border-bottom:1px solid var(--border-color);">Fold</th>
+                        <th style="text-align:center; padding:6px 10px; border-bottom:1px solid var(--border-color);">Accuracy</th>
+                        <th style="text-align:center; padding:6px 10px; border-bottom:1px solid var(--border-color);">Precision</th>
+                        <th style="text-align:center; padding:6px 10px; border-bottom:1px solid var(--border-color);">Recall</th>
+                        <th style="text-align:center; padding:6px 10px; border-bottom:1px solid var(--border-color);">F1</th>
+                    </tr>
+                    ${m.foldDetails.map((f, i) => `
+                        <tr style="color:var(--text-secondary);">
+                            <td style="padding:6px 10px; border-bottom:1px solid rgba(0,212,255,0.04);">Fold ${i + 1}</td>
+                            <td style="text-align:center; padding:6px 10px; border-bottom:1px solid rgba(0,212,255,0.04); font-family:'JetBrains Mono',monospace;">${(f.accuracy * 100).toFixed(1)}%</td>
+                            <td style="text-align:center; padding:6px 10px; border-bottom:1px solid rgba(0,212,255,0.04); font-family:'JetBrains Mono',monospace;">${(f.precision * 100).toFixed(1)}%</td>
+                            <td style="text-align:center; padding:6px 10px; border-bottom:1px solid rgba(0,212,255,0.04); font-family:'JetBrains Mono',monospace;">${(f.recall * 100).toFixed(1)}%</td>
+                            <td style="text-align:center; padding:6px 10px; border-bottom:1px solid rgba(0,212,255,0.04); font-family:'JetBrains Mono',monospace;">${(f.f1 * 100).toFixed(1)}%</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            </div>` : ''}
+        </div>
+
+        <div class="report-section">
+            <h4>📄 Reference</h4>
+            <p style="font-style:italic; color:var(--text-secondary);">
+                Kocaman, B. & Tümen, V. (2020). "Detection of electricity theft using data processing and LSTM method in distribution systems." 
+                <em>Sadhana</em>, 45, 286. 
+                <a href="https://www.ias.ac.in/article/fulltext/sadh/045/0286" target="_blank" style="color:var(--accent-cyan); text-decoration:none;">DOI Link ↗</a>
+            </p>
         </div>
     `;
 }
@@ -474,7 +592,8 @@ function exportResults() {
     }
 
     const csvRows = [];
-    const headers = ['Consumer ID', 'Name', 'Region', 'Category', 'Consumption (kWh)', 'Billing', 'Risk Score', 'Risk Level', 'Flags'];
+    const hasLSTM = currentResults.some(r => r.lstmProb !== null && r.lstmProb !== undefined);
+    const headers = ['Consumer ID', 'Name', 'Region', 'Category', 'Consumption (kWh)', 'Billing', ...(hasLSTM ? ['LSTM Probability'] : []), 'Risk Score', 'Risk Level', 'Flags'];
     csvRows.push(headers.join(','));
 
     currentResults.forEach(r => {
@@ -485,6 +604,7 @@ function exportResults() {
             r.category,
             r.consumption,
             r.billing,
+            ...(hasLSTM ? [r.lstmProb !== null ? (r.lstmProb * 100).toFixed(1) + '%' : 'N/A'] : []),
             r.riskScore,
             r.riskLevel,
             `"${r.flags.join('; ')}"`
