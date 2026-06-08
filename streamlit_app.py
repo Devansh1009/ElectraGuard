@@ -334,7 +334,7 @@ with st.sidebar:
 
     # 🧭 Sidebar Navigation Menu
     st.markdown("### 🧭 Navigation")
-    pages = ["🏠 Home", "📊 Dashboard", "📋 Data View", "⚠️ Alerts", "📈 Analytics", "📖 Guide"]
+    pages = ["🏠 Home", "📊 Dashboard", "📋 Data View", "⚠️ Alerts", "📈 Analytics", "📂 Previous Analytics", "📖 Guide"]
     for p in pages:
         is_active = (st.session_state.page == p)
         btn_type = "primary" if is_active else "secondary"
@@ -523,53 +523,6 @@ if st.session_state.page == "🏠 Home":
         st.success(f"✅ Data `{st.session_state.source_name}` has been successfully analyzed. Go to the **📊 Dashboard** page in the sidebar navigation to view the reports.")
     else:
         st.info("👈 **Get started** — upload a file or click **Sample Data / SGCC** in the sidebar.")
-
-    # ─── Firebase Run History Section ───
-    if firebase_connected:
-        st.divider()
-        st.markdown("### 📋 Run History (Firebase)")
-        
-        runs = firebase_db.get_runs_list()
-        if not runs:
-            st.info("No saved runs found in Firebase Firestore. Analyze data to store it here.")
-        else:
-            st.markdown("Select a past run to load its full dashboard:")
-            
-            # Header Row
-            hcol1, hcol2, hcol3, hcol4, hcol5, hcol6 = st.columns([2.5, 2, 1, 1, 1, 1.5])
-            hcol1.markdown("**Dataset Filename**")
-            hcol2.markdown("**Date Analyzed**")
-            hcol3.markdown("**Total**")
-            hcol4.markdown("**🔴 Crit**")
-            hcol5.markdown("**🟠 High**")
-            hcol6.markdown("**Actions**")
-            
-            for run in runs:
-                run_id = run["run_id"]
-                filename = run["filename"]
-                date_str = run.get("date_str", "Pending...")
-                total = run.get("total", 0)
-                crit = run.get("critical", 0)
-                high = run.get("high", 0)
-                
-                rcol1, rcol2, rcol3, rcol4, rcol5, rcol6 = st.columns([2.5, 2, 1, 1, 1, 1.5])
-                rcol1.write(filename)
-                rcol2.write(date_str)
-                rcol3.write(str(total))
-                rcol4.write(str(crit))
-                rcol5.write(str(high))
-                
-                # Load/Delete buttons
-                btn_col1, btn_col2 = rcol6.columns(2)
-                with btn_col1:
-                    if st.button("📂", key=f"load_{run_id}", help="Restore this analysis session"):
-                        load_historical_run(run_id)
-                        st.rerun()
-                with btn_col2:
-                    if st.button("🗑️", key=f"del_{run_id}", help="Delete from database"):
-                        with st.spinner("Deleting..."):
-                            firebase_db.delete_run(run_id)
-                            st.rerun()
 
 elif st.session_state.page == "📊 Dashboard":
     if st.session_state.engine is None:
@@ -824,6 +777,55 @@ elif st.session_state.page == "📈 Analytics":
                     yaxis_title="Count",
                 )
                 st.plotly_chart(fig_lstm, use_container_width=True)
+
+elif st.session_state.page == "📂 Previous Analytics":
+    st.markdown("### 📂 Previous Analytics (Firebase)")
+    
+    if not firebase_connected:
+        st.warning("⚠️ **Firebase Offline**\n\nRun history is disabled. Add credentials to `.streamlit/secrets.toml` to connect.")
+    else:
+        runs = firebase_db.get_runs_list()
+        if not runs:
+            st.info("No saved runs found in Firebase Firestore. Analyze data to store it here.")
+        else:
+            st.markdown("Select a past run to load its full dashboard:")
+            st.divider()
+            
+            # Header Row
+            hcol1, hcol2, hcol3, hcol4, hcol5, hcol6 = st.columns([2.5, 2, 1, 1, 1, 1.5])
+            hcol1.markdown("**Dataset Filename**")
+            hcol2.markdown("**Date Analyzed**")
+            hcol3.markdown("**Total**")
+            hcol4.markdown("**🔴 Crit**")
+            hcol5.markdown("**🟠 High**")
+            hcol6.markdown("**Actions**")
+            
+            for run in runs:
+                run_id = run["run_id"]
+                filename = run["filename"]
+                date_str = run.get("date_str", "Pending...")
+                total = run.get("total", 0)
+                crit = run.get("critical", 0)
+                high = run.get("high", 0)
+                
+                rcol1, rcol2, rcol3, rcol4, rcol5, rcol6 = st.columns([2.5, 2, 1, 1, 1, 1.5])
+                rcol1.write(filename)
+                rcol2.write(date_str)
+                rcol3.write(str(total))
+                rcol4.write(str(crit))
+                rcol5.write(str(high))
+                
+                # Load/Delete buttons
+                btn_col1, btn_col2 = rcol6.columns(2)
+                with btn_col1:
+                    if st.button("📂", key=f"load_{run_id}", help="Restore this analysis session"):
+                        load_historical_run(run_id)
+                        st.rerun()
+                with btn_col2:
+                    if st.button("🗑️", key=f"del_{run_id}", help="Delete from database"):
+                        with st.spinner("Deleting..."):
+                            firebase_db.delete_run(run_id)
+                            st.rerun()
 
 elif st.session_state.page == "📖 Guide":
     st.markdown("#### 📖 Data Labelling Guide")
