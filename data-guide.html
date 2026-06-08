@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElectraGuard — Data Labelling Guide</title>
+    <meta name="description" content="Learn how to format and label your Excel (XLSX) data for the ElectraGuard electrical theft detection system. Column mappings, time-series format, and labelling conventions explained.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ── Tokens ── */
+        :root {
+            --bg: #0a0e1a;
+            --bg-card: rgba(15, 20, 40, 0.7);
+            --border: rgba(0, 212, 255, 0.1);
+            --border-glow: rgba(0, 212, 255, 0.25);
+            --text: #e8ecf4;
+            --text-sec: #8892a8;
+            --text-muted: #5a6478;
+            --cyan: #00d4ff;
+            --blue: #3b82f6;
+            --purple: #a855f7;
+            --green: #10b981;
+            --yellow: #f59e0b;
+            --red: #ef4444;
+            --orange: #f97316;
+            --grad: linear-gradient(135deg, #00d4ff 0%, #3b82f6 50%, #a855f7 100%);
+            --radius: 12px;
+            --nav-h: 64px;
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f1423; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.2); border-radius: 4px; }
+
+        /* ── Background ── */
+        .bg-grid {
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none; z-index: 0;
+        }
+        .bg-glow {
+            position: fixed; border-radius: 50%; filter: blur(130px); opacity: 0.25; pointer-events: none; z-index: 0;
+            animation: glow 14s ease-in-out infinite alternate;
+        }
+        .g1 { width: 450px; height: 450px; background: var(--cyan); top: -8%; right: -4%; }
+        .g2 { width: 350px; height: 350px; background: var(--purple); bottom: -8%; left: -4%; animation-delay: -5s; }
+        @keyframes glow { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(-20px,25px) scale(.95)} }
+
+        /* ── Nav ── */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 32px;
+            background: rgba(10,14,26,0.88); backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border); z-index: 100;
+        }
+        .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+        .brand-icon {
+            display: flex; align-items: center; justify-content: center;
+            width: 38px; height: 38px; border-radius: 8px;
+            background: var(--grad); color: #fff;
+        }
+        .brand-name { font-size: 1.15rem; font-weight: 700; color: var(--text); }
+        .brand-name span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .nav-back {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 7px 16px; border-radius: 8px;
+            border: 1px solid var(--border); background: transparent;
+            color: var(--cyan); font-family: 'Inter', sans-serif;
+            font-size: 0.85rem; font-weight: 500; text-decoration: none;
+            transition: 0.2s ease;
+        }
+        .nav-back:hover { background: rgba(0,212,255,0.06); border-color: var(--border-glow); }
+
+        /* ── Layout ── */
+        .page { position: relative; z-index: 1; padding-top: var(--nav-h); }
+        .container { max-width: 960px; margin: 0 auto; padding: 48px 28px 80px; }
+
+        /* ── Hero ── */
+        .hero { text-align: center; margin-bottom: 56px; animation: fadeUp .6s ease; }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 5px 14px; border-radius: 20px;
+            background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.15);
+            color: var(--cyan); font-size: 0.75rem; font-weight: 600;
+            letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 20px;
+        }
+        .hero h1 { font-size: 2.6rem; font-weight: 800; letter-spacing: -1px; line-height: 1.2; }
+        .hero h1 span { display: block; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero p { margin-top: 14px; font-size: 1.05rem; color: var(--text-sec); max-width: 640px; margin-left: auto; margin-right: auto; }
+
+        @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+
+        /* ── TOC ── */
+        .toc {
+            padding: 24px 28px; border-radius: var(--radius); margin-bottom: 40px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            animation: fadeUp .6s ease .1s both;
+        }
+        .toc h3 { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 12px; }
+        .toc ol { padding-left: 20px; }
+        .toc li { padding: 4px 0; }
+        .toc a { color: var(--cyan); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: 0.15s; }
+        .toc a:hover { color: #fff; }
+
+        /* ── Section ── */
+        section { margin-bottom: 48px; animation: fadeUp .5s ease both; }
+        section:nth-child(2) { animation-delay: .12s; }
+        section:nth-child(3) { animation-delay: .18s; }
+        section:nth-child(4) { animation-delay: .24s; }
+        section:nth-child(5) { animation-delay: .3s; }
+
+        section h2 {
+            font-size: 1.4rem; font-weight: 700; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 10px;
+            padding-bottom: 10px; border-bottom: 1px solid var(--border);
+        }
+        section h2 .sec-num {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; border-radius: 8px;
+            background: rgba(0,212,255,0.08); color: var(--cyan);
+            font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 700;
+            flex-shrink: 0;
+        }
+        section h3 { font-size: 1.05rem; font-weight: 600; margin: 24px 0 10px; color: var(--text); }
+        section p { color: var(--text-sec); margin-bottom: 14px; }
+
+        /* ── Cards ── */
+        .card {
+            padding: 24px; border-radius: var(--radius);
+            background: var(--bg-card); border: 1px solid var(--border);
+            margin-bottom: 16px; transition: 0.25s ease;
+        }
+        .card:hover { border-color: var(--border-glow); }
+        .card h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+
+        /* ── Tables ── */
+        .table-wrap {
+            border-radius: var(--radius); border: 1px solid var(--border);
+            overflow-x: auto; margin-bottom: 20px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        thead th {
+            text-align: left; padding: 12px 16px;
+            font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--text-muted);
+            background: rgba(15,20,35,0.9); border-bottom: 1px solid var(--border);
+            white-space: nowrap; position: sticky; top: 0;
+        }
+        td {
+            padding: 10px 16px; border-bottom: 1px solid rgba(0,212,255,0.04);
+            color: var(--text-sec);
+        }
+        tr:hover td { background: rgba(0,212,255,0.02); }
+
+        /* ── Code ── */
+        code {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
+            padding: 2px 7px; border-radius: 5px;
+            background: rgba(0,212,255,0.08); color: var(--cyan);
+        }
+        pre {
+            padding: 20px; border-radius: var(--radius);
+            background: rgba(10,14,26,0.8); border: 1px solid var(--border);
+            overflow-x: auto; margin-bottom: 16px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+            line-height: 1.65; color: var(--text-sec);
+        }
+
+        /* ── Badges ── */
+        .badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 9px; border-radius: 6px;
+            font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .badge.required { background: rgba(239,68,68,0.12); color: #ff6b6b; border: 1px solid rgba(239,68,68,0.2); }
+        .badge.recommended { background: rgba(168,85,247,0.12); color: #c084fc; border: 1px solid rgba(168,85,247,0.2); }
+        .badge.optional { background: rgba(59,130,246,0.1); color: #6da9ff; border: 1px solid rgba(59,130,246,0.15); }
+        .badge.lstm { background: rgba(16,185,129,0.1); color: #5de0b5; border: 1px solid rgba(16,185,129,0.15); }
+
+        /* ── Alert boxes ── */
+        .alert {
+            padding: 16px 20px; border-radius: var(--radius);
+            margin-bottom: 16px; font-size: 0.88rem;
+            display: flex; gap: 12px; align-items: flex-start;
+        }
+        .alert-icon { flex-shrink: 0; margin-top: 2px; }
+        .alert.tip { background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.15); color: var(--green); }
+        .alert.tip .alert-body { color: var(--text-sec); }
+        .alert.warn { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15); color: var(--yellow); }
+        .alert.warn .alert-body { color: var(--text-sec); }
+        .alert.info { background: rgba(0,212,255,0.04); border: 1px solid rgba(0,212,255,0.12); color: var(--cyan); }
+        .alert.info .alert-body { color: var(--text-sec); }
+        .alert.important { background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.15); color: var(--purple); }
+        .alert.important .alert-body { color: var(--text-sec); }
+
+        .alert strong { color: var(--text); }
+
+        /* ── Column icon strip ── */
+        .col-strip {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 10px; margin-bottom: 20px;
+        }
+        .col-chip {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 14px; border-radius: 10px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            transition: 0.2s;
+        }
+        .col-chip:hover { border-color: var(--border-glow); transform: translateY(-1px); }
+        .col-chip .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .col-chip .label { font-size: 0.82rem; font-weight: 500; }
+        .col-chip .sub { font-size: 0.7rem; color: var(--text-muted); }
+
+        /* ── Sample Excel Visual ── */
+        .excel-visual {
+            border-radius: var(--radius); overflow: hidden;
+            border: 1px solid var(--border); margin-bottom: 20px;
+        }
+        .excel-bar {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 14px;
+            background: rgba(16,185,129,0.08); border-bottom: 1px solid var(--border);
+            font-size: 0.75rem; font-weight: 600; color: var(--green);
+        }
+        .excel-bar .dots { display: flex; gap: 5px; }
+        .excel-bar .dots span { width: 10px; height: 10px; border-radius: 50%; }
+        .excel-table { overflow-x: auto; }
+        .excel-table table { min-width: 900px; }
+        .excel-table th { background: rgba(16,185,129,0.05) !important; color: var(--green) !important; font-size: 0.72rem !important; }
+        .excel-table td { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
+        .excel-table tr:nth-child(even) td { background: rgba(0,212,255,0.01); }
+        .cell-flag-0 { color: var(--green); }
+        .cell-flag-1 { color: var(--red); font-weight: 600; }
+        .cell-low { color: var(--red); }
+        .cell-normal { color: var(--text-sec); }
+
+        /* ── Steps ── */
+        .steps { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
+        .step {
+            display: flex; gap: 16px; padding: 18px 20px;
+            border-radius: var(--radius); background: var(--bg-card); border: 1px solid var(--border);
+            transition: 0.25s;
+        }
+        .step:hover { border-color: var(--border-glow); }
+        .step-num {
+            display: flex; align-items: center; justify-content: center;
+            width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+            background: rgba(0,212,255,0.08); color: var(--cyan);
+            font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 700;
+        }
+        .step-body h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+        .step-body p { font-size: 0.85rem; color: var(--text-sec); margin: 0; }
+
+        /* ── Footer ── */
+        footer {
+            text-align: center; padding: 32px 20px;
+            border-top: 1px solid var(--border);
+            font-size: 0.8rem; color: var(--text-muted);
+        }
+        footer a { color: var(--cyan); text-decoration: none; }
+
+        /* ── Responsive ── */
+        @media (max-width: 700px) {
+            .hero h1 { font-size: 1.8rem; }
+            .col-strip { grid-template-columns: 1fr 1fr; }
+            nav { padding: 0 16px; }
+            .container { padding: 32px 16px 60px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow g1"></div>
+    <div class="bg-glow g2"></div>
+
+    <!-- Navigation -->
+    <nav>
+        <a href="index.html" class="brand">
+            <div class="brand-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            </div>
+            <span class="brand-name">Electra<span>Guard</span></span>
+        </a>
+        <a href="index.html" class="nav-back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Back to App
+        </a>
+    </nav>
+
+    <div class="page">
+        <div class="container">
+
+            <!-- Hero -->
+            <div class="hero">
+                <div class="hero-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    Data Format Reference
+                </div>
+                <h1>Excel Data<span>Labelling Guide</span></h1>
+                <p>Learn how to structure and label your XLSX spreadsheet data so ElectraGuard's LSTM deep learning engine and statistical detectors can analyse it accurately.</p>
+            </div>
+
+            <!-- Table of Contents -->
+            <div class="toc">
+                <h3>Contents</h3>
+                <ol>
+                    <li><a href="#overview">Overview & Quick Start</a></li>
+                    <li><a href="#columns">Column Reference & Auto-Mapping</a></li>
+                    <li><a href="#timeseries">Time-Series Columns (for LSTM)</a></li>
+                    <li><a href="#flag">Theft Flag / Label Column</a></li>
+                    <li><a href="#sample">Sample Excel Layout</a></li>
+                    <li><a href="#normalization">How Data Is Processed Internally</a></li>
+                    <li><a href="#tips">Best Practices & Tips</a></li>
+                </ol>
+            </div>
+
+            <!-- 1. Overview -->
+            <section id="overview">
+                <h2><span class="sec-num">1</span> Overview & Quick Start</h2>
+                <p>ElectraGuard accepts <code>.xlsx</code>, <code>.xls</code>, and <code>.csv</code> files. The app <strong>auto-detects</strong> your column names by matching them against a library of common aliases — so you don't need to rename anything in most cases.</p>
+
+                <div class="alert tip">
+                    <div class="alert-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <div class="alert-body">
+                        <strong>Minimum requirement:</strong> At least one numeric column representing electricity consumption (kWh). Everything else is optional but improves detection accuracy.
+                    </div>
+                </div>
+
+                <h3>Two Detection Modes</h3>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-num">A</div>
+                        <div class="step-body">
+                            <h4>Statistical Detection (always active)</h4>
+                            <p>Works with any spreadsheet. Uses Z-Score, IQR, billing ratios, load analysis, and consumption change detection. Needs only a <code>Consumption</code> column.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">B</div>
+                        <div class="step-body">
+                            <h4>LSTM Deep Learning (activates automatically)</h4>
+                            <p>Trains an in-browser neural network when your data includes <strong>≥ 7 time-series columns</strong> (e.g. <code>day_1</code> through <code>day_30</code>). Based on Kocaman & Tümen (2020). Provides a learned theft probability per consumer.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Column Reference -->
+            <section id="columns">
+                <h2><span class="sec-num">2</span> Column Reference & Auto-Mapping</h2>
+                <p>The app looks for the following fields. For each, it tries <strong>multiple aliases</strong> — use any of the names listed and the app will map it automatically.</p>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Priority</th>
+                                <th>Accepted Column Names</th>
+                                <th>Data Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Consumer ID</strong></td>
+                                <td><span class="badge recommended">Recommended</span></td>
+                                <td><code>consumer_id</code>, <code>id</code>, <code>cust_id</code>, <code>meter_id</code>, <code>account</code>, <code>sr_no</code>, <code>sno</code></td>
+                                <td>Text / Number</td>
+                                <td>Unique identifier for each consumer. Auto-generated if missing.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Name</strong></td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td><code>name</code>, <code>consumer_name</code>, <code>customer_name</code>, <code>cust_name</code></td>
+                                <td>Text</td>
+                                <td>Consumer display name. Defaults to "Consumer N".</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Consumption</strong></td>
+                                <td><span class="badge required">Required</span></td>
+                                <td><code>consumption</code>, <code>kwh</code>, <code>units</code>, <code>units_consumed</code>, <code>energy</code>, <code>usage</code>, <code>reading</code>, <code>meter_reading</code>, <code>load</code></td>
+                                <td>Number (kWh)</td>
+                                <td>Total electricity consumed. <strong>This is the primary metric for all detection.</strong></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Billing</strong></td>
+                                <td><span class="badge recommended">Recommended</span></td>
+                                <td><code>billing</code>, <code>billing_amount</code>, <code>bill</code>, <code>amount</code>, <code>charges</code>, <code>total_bill</code>, <code>revenue</code></td>
+                                <td>Number (₹)</td>
+                                <td>Billed amount. Enables consumption-to-billing ratio anomaly detection.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Region</strong></td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td><code>region</code>, <code>area</code>, <code>zone</code>, <code>district</code>, <code>location</code>, <code>city</code>, <code>sector</code>, <code>feeder</code>, <code>subdivision</code></td>
+                                <td>Text</td>
+                                <td>Geographic area. Used for regional breakdown charts.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Category</strong></td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td><code>category</code>, <code>type</code>, <code>consumer_type</code>, <code>tariff</code>, <code>connection_type</code></td>
+                                <td>Text</td>
+                                <td>Consumer type (Domestic, Commercial, Industrial, Agricultural).</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Sanctioned Load</strong></td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td><code>sanctioned_load</code>, <code>sanc_load</code>, <code>contract_demand</code>, <code>connected_load</code>, <code>max_demand</code></td>
+                                <td>Number (kW)</td>
+                                <td>Approved load limit. Compared against actual load for overload detection.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Actual Load</strong></td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td><code>actual_load</code>, <code>measured_load</code>, <code>current_load</code>, <code>peak_load</code>, <code>demand</code></td>
+                                <td>Number (kW)</td>
+                                <td>Measured load. Flagged if &gt;120% of sanctioned load.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Previous Consumption</strong></td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td><code>previous_consumption</code>, <code>prev_consumption</code>, <code>last_consumption</code>, <code>prev_reading</code>, <code>prev_units</code></td>
+                                <td>Number (kWh)</td>
+                                <td>Last period's consumption. Enables sudden-drop detection (&gt;50% decline).</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Meter Status</strong></td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td><code>meter_status</code>, <code>status</code>, <code>meter_condition</code>, <code>defective</code>, <code>faulty</code></td>
+                                <td>Text</td>
+                                <td>Flagged if value contains: <code>faulty</code>, <code>defective</code>, <code>dead</code>, <code>stuck</code>, <code>tampered</code>, <code>bypassed</code>, <code>error</code>.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Date</strong></td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td><code>date</code>, <code>reading_date</code>, <code>month</code>, <code>period</code>, <code>billing_date</code></td>
+                                <td>Date / Text</td>
+                                <td>Reading or billing date for the record.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Theft Flag</strong></td>
+                                <td><span class="badge lstm">LSTM Label</span></td>
+                                <td><code>flag</code>, <code>label</code>, <code>theft</code>, <code>is_theft</code>, <code>fraud</code>, <code>anomaly</code>, <code>class</code>, <code>target</code></td>
+                                <td>0 or 1</td>
+                                <td>Ground-truth label for supervised LSTM training. See <a href="#flag" style="color:var(--cyan);">Section 4</a>.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="alert info">
+                    <div class="alert-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    </div>
+                    <div class="alert-body">
+                        <strong>Column matching is case-insensitive</strong> and ignores special characters. So <code>Consumption (kWh)</code>, <code>consumption_kwh</code>, and <code>CONSUMPTION</code> all map to the same field.
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Time-Series Columns -->
+            <section id="timeseries">
+                <h2><span class="sec-num">3</span> Time-Series Columns (for LSTM)</h2>
+                <p>To activate the <strong>LSTM deep learning engine</strong>, your spreadsheet must include <strong>at least 7 sequential time-period columns</strong> representing daily (or periodic) consumption readings per consumer.</p>
+
+                <h3>Accepted Naming Patterns</h3>
+                <div class="col-strip">
+                    <div class="col-chip"><div class="dot" style="background:var(--cyan);"></div><div><div class="label"><code>day_1</code>, <code>day_2</code> …</div><div class="sub">Daily readings</div></div></div>
+                    <div class="col-chip"><div class="dot" style="background:var(--purple);"></div><div><div class="label"><code>d_1</code>, <code>d_2</code> …</div><div class="sub">Shorthand daily</div></div></div>
+                    <div class="col-chip"><div class="dot" style="background:var(--blue);"></div><div><div class="label"><code>reading_1</code>, <code>reading_2</code></div><div class="sub">Reading index</div></div></div>
+                    <div class="col-chip"><div class="dot" style="background:var(--green);"></div><div><div class="label"><code>week_1</code>, <code>week_2</code></div><div class="sub">Weekly readings</div></div></div>
+                    <div class="col-chip"><div class="dot" style="background:var(--yellow);"></div><div><div class="label"><code>month_1</code>, <code>month_2</code></div><div class="sub">Monthly readings</div></div></div>
+                    <div class="col-chip"><div class="dot" style="background:var(--orange);"></div><div><div class="label"><code>2025-01-01</code>, <code>2025-01-02</code></div><div class="sub">Date as column header</div></div></div>
+                </div>
+
+                <div class="alert important">
+                    <div class="alert-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <div class="alert-body">
+                        <strong>Minimum 7 time-series columns required</strong> for the LSTM to activate. More data points = better temporal pattern learning. 30 daily readings is recommended.
+                    </div>
+                </div>
+
+                <h3>Example Layout</h3>
+                <pre>Consumer ID | day_1 | day_2 | day_3 | ... | day_30 | Flag
+EG-01001   |  8.5  | 9.2   |  7.8  | ... |  8.1   |  0
+EG-01002   |  2.1  | 0.3   |  0.0  | ... |  1.5   |  1    ← theft
+EG-01003   | 12.4  | 11.8  | 13.0  | ... | 12.6   |  0</pre>
+
+                <p>Each row = one consumer. Each <code>day_N</code> column = that consumer's consumption reading on day N. The LSTM learns the <strong>temporal pattern</strong> across these columns to detect anomalies.</p>
+            </section>
+
+            <!-- 4. Theft Flag -->
+            <section id="flag">
+                <h2><span class="sec-num">4</span> Theft Flag / Label Column</h2>
+                <p>The <strong>Flag</strong> (or <strong>Label</strong>) column tells the LSTM which consumers are known theft cases. This enables <strong>supervised learning</strong> for higher accuracy.</p>
+
+                <div class="card">
+                    <h4>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                        Label Values
+                    </h4>
+                    <div class="table-wrap" style="margin-top: 12px; margin-bottom: 0;">
+                        <table>
+                            <thead>
+                                <tr><th>Value</th><th>Meaning</th><th>Description</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code style="background:rgba(16,185,129,0.12); color:#5de0b5;">0</code></td>
+                                    <td><strong>Normal / Honest</strong></td>
+                                    <td>This consumer has no known theft or tampering history. They are a legitimate consumer.</td>
+                                </tr>
+                                <tr>
+                                    <td><code style="background:rgba(239,68,68,0.12); color:#ff6b6b;">1</code></td>
+                                    <td><strong>Theft / Fraudulent</strong></td>
+                                    <td>This consumer is a <strong>confirmed or suspected</strong> electricity thief — identified through physical inspection, meter audit, or prior investigation.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="alert tip">
+                    <div class="alert-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <div class="alert-body">
+                        <strong>No labels? No problem.</strong> If you don't have a Flag column, the app will <strong>auto-generate pseudo-labels</strong> using statistical heuristics (very low consumption, high variance, zero readings, IQR outliers) to bootstrap the LSTM training.
+                    </div>
+                </div>
+
+                <h3>How Labels Are Used</h3>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <div class="step-body">
+                            <h4>Training Data Split</h4>
+                            <p>The LSTM uses your labels to create a supervised classification problem: it learns what <strong>normal</strong> (0) vs <strong>theft</strong> (1) consumption patterns look like over time.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">2</div>
+                        <div class="step-body">
+                            <h4>5-Fold Cross-Validation</h4>
+                            <p>Data is split into 5 folds. Each fold takes turns being the validation set. This produces reliable accuracy, precision, recall, and F1 metrics.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <div class="step-body">
+                            <h4>Theft Probability Output</h4>
+                            <p>After training, the LSTM produces a <strong>theft probability (0–100%)</strong> for each consumer. This is fused with statistical scores into the final hybrid risk score.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Labelling Sources</h3>
+                <p>Where do labels come from in real-world scenarios?</p>
+                <div class="col-strip">
+                    <div class="col-chip"><div class="dot" style="background:var(--red);"></div><div><div class="label">Physical Inspection</div><div class="sub">Meter tamper audits</div></div></div>
+                    <div class="col-chip"><div class="dot" style="background:var(--orange);"></div><div><div class="label">FIR / Legal Records</div><div class="sub">Filed theft cases</div></div></div>
+                    <div class="col-chip"><div class="dot" style="background:var(--yellow);"></div><div><div class="label">Revenue Protection</div><div class="sub">Utility theft teams</div></div></div>
+                    <div class="col-chip"><div class="dot" style="background:var(--purple);"></div><div><div class="label">SGCC Dataset</div><div class="sub">Benchmark dataset</div></div></div>
+                    <div class="col-chip"><div class="dot" style="background:var(--blue);"></div><div><div class="label">Smart Meter Alerts</div><div class="sub">AMI system flags</div></div></div>
+                    <div class="col-chip"><div class="dot" style="background:var(--cyan);"></div><div><div class="label">Historical Analysis</div><div class="sub">Prior model outputs</div></div></div>
+                </div>
+            </section>
+
+            <!-- 5. Sample Excel Layout -->
+            <section id="sample">
+                <h2><span class="sec-num">5</span> Sample Excel Layout</h2>
+                <p>Here's how a well-structured spreadsheet looks. This format enables <strong>both</strong> the LSTM engine and all statistical detectors.</p>
+
+                <div class="excel-visual">
+                    <div class="excel-bar">
+                        <div class="dots"><span style="background:#ef4444;"></span><span style="background:#f59e0b;"></span><span style="background:#10b981;"></span></div>
+                        electricity_data.xlsx — Sheet 1
+                    </div>
+                    <div class="excel-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Consumer ID</th>
+                                    <th>Name</th>
+                                    <th>Region</th>
+                                    <th>Category</th>
+                                    <th>day_1</th>
+                                    <th>day_2</th>
+                                    <th>day_3</th>
+                                    <th>…</th>
+                                    <th>day_30</th>
+                                    <th>Consumption</th>
+                                    <th>Billing</th>
+                                    <th>Sanctioned Load</th>
+                                    <th>Meter Status</th>
+                                    <th>Previous Consumption</th>
+                                    <th>Flag</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>EG-01001</td><td>Consumer 1</td><td>North Zone</td><td>Domestic</td>
+                                    <td class="cell-normal">8.5</td><td class="cell-normal">9.2</td><td class="cell-normal">7.8</td><td>…</td><td class="cell-normal">8.1</td>
+                                    <td>252</td><td>1,890</td><td>3.5</td><td>OK</td><td>248</td>
+                                    <td class="cell-flag-0">0</td>
+                                </tr>
+                                <tr>
+                                    <td>EG-01002</td><td>Consumer 2</td><td>South Zone</td><td>Commercial</td>
+                                    <td class="cell-low">2.1</td><td class="cell-low">0.3</td><td class="cell-low">0.0</td><td>…</td><td class="cell-low">1.5</td>
+                                    <td class="cell-low">18</td><td>150</td><td>8.0</td><td>Faulty</td><td>380</td>
+                                    <td class="cell-flag-1">1</td>
+                                </tr>
+                                <tr>
+                                    <td>EG-01003</td><td>Consumer 3</td><td>East Zone</td><td>Industrial</td>
+                                    <td class="cell-normal">45.2</td><td class="cell-normal">43.8</td><td class="cell-normal">46.1</td><td>…</td><td class="cell-normal">44.7</td>
+                                    <td>1,340</td><td>9,380</td><td>12.0</td><td>OK</td><td>1,310</td>
+                                    <td class="cell-flag-0">0</td>
+                                </tr>
+                                <tr>
+                                    <td>EG-01004</td><td>Consumer 4</td><td>West Zone</td><td>Domestic</td>
+                                    <td class="cell-normal">5.8</td><td class="cell-normal">6.1</td><td class="cell-low">0.1</td><td>…</td><td class="cell-normal">5.5</td>
+                                    <td class="cell-low">95</td><td>720</td><td>3.0</td><td>OK</td><td>210</td>
+                                    <td class="cell-flag-1">1</td>
+                                </tr>
+                                <tr>
+                                    <td>EG-01005</td><td>Consumer 5</td><td>Central</td><td>Agricultural</td>
+                                    <td class="cell-normal">10.4</td><td class="cell-normal">11.0</td><td class="cell-normal">9.8</td><td>…</td><td class="cell-normal">10.2</td>
+                                    <td>312</td><td>1,560</td><td>5.5</td><td>OK</td><td>305</td>
+                                    <td class="cell-flag-0">0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="alert warn">
+                    <div class="alert-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <div class="alert-body">
+                        <strong>Row 2 (EG-01002)</strong> shows a typical theft pattern: near-zero daily readings, very low total consumption (18 kWh vs avg ~250), a "Faulty" meter, and a huge drop from previous consumption (380→18). Flag = <code style="color:#ff6b6b;">1</code>.
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. Internal Processing -->
+            <section id="normalization">
+                <h2><span class="sec-num">6</span> How Data Is Processed Internally</h2>
+                <p>Understanding the internal pipeline helps you prepare better data. Here's the full flow based on the <strong>Kocaman & Tümen (2020)</strong> methodology:</p>
+
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <div class="step-body">
+                            <h4>Data Cleaning</h4>
+                            <p>Missing/NaN values are imputed with the column mean. Negative values are set to 0. Empty rows are skipped.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">2</div>
+                        <div class="step-body">
+                            <h4>Min-Max Normalization</h4>
+                            <p>Each consumer's time-series is scaled to [0, 1] using: <code>X_norm = (X - X_min) / (X_max - X_min)</code>. This ensures fair comparison across different consumption scales.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <div class="step-body">
+                            <h4>Sliding Window Sequencing</h4>
+                            <p>The normalized series is split into overlapping windows of 7 time-steps. Each window becomes one training sample for the LSTM.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">4</div>
+                        <div class="step-body">
+                            <h4>LSTM Training</h4>
+                            <p>Architecture: <code>LSTM(128) → Dropout(0.2) → Dense(64, relu) → Dense(1, sigmoid)</code>. Trained for 30 epochs with Adam optimizer and binary cross-entropy loss.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">5</div>
+                        <div class="step-body">
+                            <h4>5-Fold Cross-Validation</h4>
+                            <p>Model is trained and evaluated 5 times on different data splits. Reports averaged accuracy, precision, recall, and F1 score.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">6</div>
+                        <div class="step-body">
+                            <h4>Hybrid Risk Scoring</h4>
+                            <p>LSTM theft probability (0–40 pts) is combined with statistical flags (0–60 pts) into a final 0–100 risk score per consumer.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7. Tips -->
+            <section id="tips">
+                <h2><span class="sec-num">7</span> Best Practices & Tips</h2>
+
+                <div class="card">
+                    <h4>✅ Do's</h4>
+                    <ul style="padding-left: 20px; color: var(--text-sec); font-size: 0.88rem;">
+                        <li>Use <strong>consistent column names</strong> across your header row — no merged cells or multi-row headers.</li>
+                        <li>Include as many columns as possible for maximum detection accuracy.</li>
+                        <li>For LSTM: provide <strong>≥ 7 daily reading columns</strong>. 30 days is ideal.</li>
+                        <li>If you have historical theft records, add a <code>Flag</code> column (0/1) for supervised training.</li>
+                        <li>Keep data on the <strong>first sheet</strong> of your Excel file.</li>
+                        <li>Use numeric values for consumption, billing, and load columns (no text like "N/A").</li>
+                        <li>Label at least <strong>10% of your data</strong> as theft (Flag=1) for balanced LSTM training.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h4>❌ Don'ts</h4>
+                    <ul style="padding-left: 20px; color: var(--text-sec); font-size: 0.88rem;">
+                        <li>Don't use <strong>merged cells</strong> — the parser won't handle them correctly.</li>
+                        <li>Don't put data starting from row 3+ with blank rows above — data must start at row 1 (header) + row 2 (first data row).</li>
+                        <li>Don't mix units in the same column (e.g., some rows in kWh, others in MWh).</li>
+                        <li>Don't use commas in numeric values (e.g., use <code>1500</code> not <code>1,500</code> in the raw cell).</li>
+                        <li>Don't leave the <code>Flag</code> column with values other than 0 or 1.</li>
+                    </ul>
+                </div>
+
+                <div class="alert info">
+                    <div class="alert-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    </div>
+                    <div class="alert-body">
+                        <strong>Quick test:</strong> Use the <strong>"Load Sample Data"</strong> button on the <a href="index.html" style="color:var(--cyan);">main app</a> to see a working example with 150 consumers and 30-day time-series data — including LSTM training!
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <footer>
+            <p>ElectraGuard Data Labelling Guide · Based on <a href="https://www.ias.ac.in/article/fulltext/sadh/045/0286" target="_blank">Kocaman & Tümen, Sadhana 45:286 (2020)</a></p>
+            <p style="margin-top: 6px;">⚡ <a href="index.html">Back to ElectraGuard App</a></p>
+        </footer>
+    </div>
+</body>
+</html>
