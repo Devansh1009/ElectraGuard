@@ -19,7 +19,31 @@ document.addEventListener('DOMContentLoaded', () => {
     initUploadZone();
     initNavigation();
     initSearch();
+    initGuideButton();
 });
+
+/* =========================
+   Guide Button (Hero)
+   ========================= */
+function initGuideButton() {
+    const btnGuide = document.getElementById('btnGuide');
+    if (btnGuide) {
+        btnGuide.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Show dashboard section (which contains the guide panel)
+            document.getElementById('heroSection').style.display = 'none';
+            document.getElementById('dashboardSection').style.display = 'block';
+
+            // Activate guide nav tab
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.querySelector('.nav-link[data-section="guide"]')?.classList.add('active');
+
+            // Show guide panel, hide others
+            document.querySelectorAll('.section-panel').forEach(p => p.style.display = 'none');
+            document.getElementById('section-guide').style.display = 'block';
+        });
+    }
+}
 
 /* =========================
    File Upload
