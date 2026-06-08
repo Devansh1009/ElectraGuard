@@ -46,7 +46,7 @@ st.markdown("""
     [data-testid="stMetricLabel"] { color: #8892a8 !important; font-size: 0.8rem !important; }
     [data-testid="stMetricValue"] { color: #e8ecf4 !important; }
 
-    /* Tabs */
+    /* Tabs (deprecated, but keeping styles just in case) */
     .stTabs [data-baseweb="tab-list"] { gap: 8px; }
     .stTabs [data-baseweb="tab"] {
         background: rgba(15,20,40,0.7);
@@ -64,17 +64,87 @@ st.markdown("""
     /* DataFrame */
     .stDataFrame { border-radius: 12px; overflow: hidden; }
 
-    /* Buttons */
+    /* Buttons general */
     .stButton > button {
-        border: 1px solid rgba(0,212,255,0.2);
-        background: rgba(0,212,255,0.05);
-        color: #00d4ff;
         border-radius: 10px;
         transition: all 0.2s;
     }
-    .stButton > button:hover {
-        background: rgba(0,212,255,0.12);
-        border-color: rgba(0,212,255,0.4);
+
+    /* Primary Button (Active Nav / Action) */
+    [data-testid="stBaseButton-primary"] {
+        background: rgba(0,212,255,0.2) !important;
+        color: #00d4ff !important;
+        border: 1px solid rgba(0,212,255,0.5) !important;
+    }
+    [data-testid="stBaseButton-primary"]:hover {
+        background: rgba(0,212,255,0.3) !important;
+        border-color: rgba(0,212,255,0.8) !important;
+    }
+
+    /* Secondary Button (Inactive Nav) */
+    [data-testid="stBaseButton-secondary"] {
+        background: rgba(0,212,255,0.05) !important;
+        border: 1px solid rgba(0,212,255,0.2) !important;
+        color: #00d4ff !important;
+    }
+    [data-testid="stBaseButton-secondary"]:hover {
+        border-color: rgba(0,212,255,0.4) !important;
+        background: rgba(0,212,255,0.12) !important;
+    }
+
+    /* Sidebar Navigation buttons styling */
+    section[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"] {
+        background: transparent !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        color: #8892a8 !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        display: flex !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"]:hover {
+        border-color: rgba(0,212,255,0.3) !important;
+        color: #00d4ff !important;
+        background: rgba(0,212,255,0.05) !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stBaseButton-primary"] {
+        background: rgba(0,212,255,0.15) !important;
+        border-color: rgba(0,212,255,0.4) !important;
+        color: #00d4ff !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        display: flex !important;
+    }
+
+    /* Logo button custom styling */
+    .logo-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+    .logo-container [data-testid="stBaseButton-secondary"] {
+        background: transparent !important;
+        border: none !important;
+        color: #00d4ff !important;
+        padding: 0 !important;
+        margin: 0 auto !important;
+        display: block !important;
+        box-shadow: none !important;
+        height: auto !important;
+        min-height: unset !important;
+    }
+    .logo-container [data-testid="stBaseButton-secondary"]:hover {
+        color: #3b82f6 !important;
+        background: transparent !important;
+    }
+    .logo-container [data-testid="stBaseButton-secondary"] p {
+        font-size: 2.5rem !important;
+        font-weight: 900 !important;
+        letter-spacing: -1.5px !important;
+        background: linear-gradient(135deg, #00d4ff 0%, #3b82f6 50%, #a855f7 100%);
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        margin: 0 !important;
     }
 
     /* Header styling */
@@ -127,6 +197,12 @@ if "source_name" not in st.session_state:
     st.session_state.source_name = None
 if "lstm_results" not in st.session_state:
     st.session_state.lstm_results = None
+if "raw_df" not in st.session_state:
+    st.session_state.raw_df = None
+if "uploaded_file_name" not in st.session_state:
+    st.session_state.uploaded_file_name = None
+if "page" not in st.session_state:
+    st.session_state.page = "🏠 Home"
 
 
 def run_detection(df, source_name):
@@ -185,6 +261,18 @@ with st.sidebar:
     st.markdown("*AI-Powered Theft Detection*")
     st.divider()
 
+    # 🧭 Sidebar Navigation Menu
+    st.markdown("### 🧭 Navigation")
+    pages = ["🏠 Home", "📊 Dashboard", "📋 Data View", "⚠️ Alerts", "📈 Analytics", "📖 Guide"]
+    for p in pages:
+        is_active = (st.session_state.page == p)
+        btn_type = "primary" if is_active else "secondary"
+        if st.sidebar.button(p, key=f"nav_{p}", use_container_width=True, type=btn_type):
+            st.session_state.page = p
+            st.rerun()
+
+    st.divider()
+
     st.markdown("### 📂 Load Data")
 
     # File upload
@@ -194,15 +282,24 @@ with st.sidebar:
     )
 
     if uploaded:
-        try:
-            if uploaded.name.endswith(".csv"):
-                df = pd.read_csv(uploaded)
-            else:
-                df = pd.read_excel(uploaded)
-            run_detection(df, uploaded.name)
-            st.success(f"✅ Loaded {len(df)} records from {uploaded.name}")
-        except Exception as e:
-            st.error(f"Error: {e}")
+        if st.session_state.uploaded_file_name != uploaded.name:
+            try:
+                if uploaded.name.endswith(".csv"):
+                    df = pd.read_csv(uploaded)
+                else:
+                    df = pd.read_excel(uploaded)
+                st.session_state.raw_df = df
+                st.session_state.uploaded_file_name = uploaded.name
+                st.session_state.engine = None
+                st.session_state.df = None
+                st.session_state.lstm_results = None
+                st.session_state.page = "🏠 Home"
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+    if st.session_state.uploaded_file_name:
+        st.success(f"📂 Loaded: {st.session_state.uploaded_file_name}")
 
     st.divider()
 
@@ -211,13 +308,23 @@ with st.sidebar:
         if st.button("🎲 Sample Data", use_container_width=True):
             df, stats = generate_dataset(150, 30, 0.15)
             df = df.drop(columns=["_attack_type"], errors="ignore")
-            run_detection(df, "Sample Data (150)")
+            st.session_state.raw_df = df
+            st.session_state.uploaded_file_name = "Sample Data (150)"
+            st.session_state.engine = None
+            st.session_state.df = None
+            st.session_state.lstm_results = None
+            st.session_state.page = "🏠 Home"
             st.rerun()
     with col2:
         if st.button("🧬 SGCC (500)", use_container_width=True):
             df, stats = generate_dataset(500, 60, 0.15)
             df = df.drop(columns=["_attack_type"], errors="ignore")
-            run_detection(df, f"SGCC Dataset ({stats['total_consumers']})")
+            st.session_state.raw_df = df
+            st.session_state.uploaded_file_name = f"SGCC Dataset ({stats['total_consumers']})"
+            st.session_state.engine = None
+            st.session_state.df = None
+            st.session_state.lstm_results = None
+            st.session_state.page = "🏠 Home"
             st.rerun()
 
     if st.button("📥 Download SGCC .xlsx", use_container_width=True):
@@ -255,10 +362,25 @@ with st.sidebar:
 
 
 # ─── Main Content ───
-if st.session_state.engine is None:
-    # Landing page
+
+# ─── Persistent Top Logo Header ───
+col_logo1, col_logo2, col_logo3 = st.columns([1, 2, 1])
+with col_logo2:
+    st.markdown("<div class='logo-container'>", unsafe_allow_html=True)
+    if st.button("⚡ ElectraGuard", key="logo_home_btn", use_container_width=True):
+        st.session_state.page = "🏠 Home"
+        st.rerun()
+    st.markdown(
+        "<p style='color: #8892a8; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; margin-top: -12px; margin-bottom: 20px; font-weight: 600; text-align: center;'>AI-POWERED THEFT DETECTION</p>",
+        unsafe_allow_html=True
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ─── Page Rendering ───
+if st.session_state.page == "🏠 Home":
+    # Landing page welcome
     st.markdown("""
-    <div class="main-header">
+    <div class="main-header" style="margin-top: 10px;">
         <p><span class="badge" style="background:rgba(0,212,255,0.08); color:#00d4ff; border:1px solid rgba(0,212,255,0.15);">
             ⚡ AI-Powered Detection System
         </span></p>
@@ -293,23 +415,37 @@ if st.session_state.engine is None:
             <p style="color:#8892a8; font-size:0.85rem;">Built-in benchmark with 6 theft attack types from the research paper</p>
         </div>""", unsafe_allow_html=True)
 
-    st.info("👈 **Get started** — upload a file or click **Sample Data / SGCC** in the sidebar.")
+    # Show raw preview if data is loaded but not analyzed
+    if st.session_state.raw_df is not None and st.session_state.engine is None:
+        st.divider()
+        st.markdown(f"### 📋 Uploaded Data Preview: `{st.session_state.uploaded_file_name}`")
+        st.markdown(f"Displaying first 10 rows of {len(st.session_state.raw_df)} total records. Click **Get Analytics** below to run the detection model.")
+        st.dataframe(st.session_state.raw_df.head(10), use_container_width=True)
+        
+        # Action button
+        st.markdown("<div style='text-align: center; margin: 30px 0;'>", unsafe_allow_html=True)
+        if st.button("⚡ Get Analytics", key="get_analytics_btn", type="primary", use_container_width=True):
+            with st.spinner("Processing data & calculating risk scores..."):
+                run_detection(st.session_state.raw_df, st.session_state.uploaded_file_name)
+                st.session_state.page = "📊 Dashboard"
+                st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+    elif st.session_state.engine is not None:
+        st.divider()
+        st.success(f"✅ Data `{st.session_state.source_name}` has been successfully analyzed. Go to the **📊 Dashboard** page in the sidebar navigation to view the reports.")
+    else:
+        st.info("👈 **Get started** — upload a file or click **Sample Data / SGCC** in the sidebar.")
 
-else:
-    # ─── Dashboard ───
-    engine = st.session_state.engine
-    df = st.session_state.df
-    summary = engine.get_summary()
+elif st.session_state.page == "📊 Dashboard":
+    if st.session_state.engine is None:
+        st.warning("⚠️ No active analysis found. Please load data and click **Get Analytics** on the **🏠 Home** page first.")
+    else:
+        engine = st.session_state.engine
+        df = st.session_state.df
+        summary = engine.get_summary()
 
-    st.markdown(f"### ⚡ {st.session_state.source_name}")
+        st.markdown(f"### ⚡ Dashboard — {st.session_state.source_name}")
 
-    # Tabs
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📊 Dashboard", "📋 Data View", "⚠️ Alerts", "📈 Analytics", "📖 Guide"
-    ])
-
-    # ── Tab 1: Dashboard ──
-    with tab1:
         # Stats row
         c1, c2, c3, c4, c5 = st.columns(5)
         c1.metric("Total Consumers", summary["total"])
@@ -381,9 +517,13 @@ else:
             )
             st.plotly_chart(fig3, use_container_width=True)
 
-    # ── Tab 2: Data View ──
-    with tab2:
-        st.markdown("#### 📋 Consumer Data Table")
+elif st.session_state.page == "📋 Data View":
+    if st.session_state.engine is None:
+        st.warning("⚠️ No active analysis found. Please load data and click **Get Analytics** on the **🏠 Home** page first.")
+    else:
+        engine = st.session_state.engine
+        df = st.session_state.df
+        st.markdown(f"### 📋 Consumer Data Table — {st.session_state.source_name}")
 
         # Filters
         col_f1, col_f2, col_f3 = st.columns([2, 1, 1])
@@ -436,9 +576,13 @@ else:
         csv = display_df[existing_cols].to_csv(index=False)
         st.download_button("📥 Export as CSV", csv, "electraguard_results.csv", "text/csv")
 
-    # ── Tab 3: Alerts ──
-    with tab3:
-        st.markdown("#### ⚠️ Theft Alerts")
+elif st.session_state.page == "⚠️ Alerts":
+    if st.session_state.engine is None:
+        st.warning("⚠️ No active analysis found. Please load data and click **Get Analytics** on the **🏠 Home** page first.")
+    else:
+        engine = st.session_state.engine
+        df = st.session_state.df
+        st.markdown(f"### ⚠️ Theft Alerts — {st.session_state.source_name}")
 
         alerts_df = df[df["_risk_level"].isin(["Critical", "High"])].sort_values("_risk_score", ascending=False)
 
@@ -456,7 +600,6 @@ else:
                 level = row["_risk_level"]
                 flags = row["_flags"]
 
-                color = "#ef4444" if level == "Critical" else "#f97316"
                 emoji = "🔴" if level == "Critical" else "🟠"
 
                 with st.expander(f"{emoji} {cid} — {cname} | Score: {score:.0f}/100 ({level})"):
@@ -474,9 +617,14 @@ else:
                     if "_lstm_prob" in row and not pd.isna(row["_lstm_prob"]):
                         st.progress(float(row["_lstm_prob"]), text=f"LSTM Theft Probability: {row['_lstm_prob']*100:.1f}%")
 
-    # ── Tab 4: Analytics ──
-    with tab4:
-        st.markdown("#### 📈 Detection Analytics")
+elif st.session_state.page == "📈 Analytics":
+    if st.session_state.engine is None:
+        st.warning("⚠️ No active analysis found. Please load data and click **Get Analytics** on the **🏠 Home** page first.")
+    else:
+        engine = st.session_state.engine
+        df = st.session_state.df
+        summary = engine.get_summary()
+        st.markdown(f"### 📈 Detection Analytics — {st.session_state.source_name}")
 
         # Category breakdown
         if "by_category" in summary and summary["by_category"]:
@@ -542,76 +690,75 @@ else:
                 )
                 st.plotly_chart(fig_lstm, use_container_width=True)
 
-    # ── Tab 5: Guide ──
-    with tab5:
-        st.markdown("#### 📖 Data Labelling Guide")
-        st.markdown("""
-        Learn how to structure and label your Excel data for ElectraGuard.
+elif st.session_state.page == "📖 Guide":
+    st.markdown("#### 📖 Data Labelling Guide")
+    st.markdown("""
+    Learn how to structure and label your Excel data for ElectraGuard.
 
-        ---
+    ---
 
-        ##### 1️⃣ Overview
-        ElectraGuard accepts `.xlsx`, `.xls`, and `.csv` files. Column names are **auto-detected**.
+    ##### 1️⃣ Overview
+    ElectraGuard accepts `.xlsx`, `.xls`, and `.csv` files. Column names are **auto-detected**.
 
-        > **Minimum:** At least one numeric column for electricity consumption (kWh).
+    > **Minimum:** At least one numeric column for electricity consumption (kWh).
 
-        ---
+    ---
 
-        ##### 2️⃣ Column Reference
+    ##### 2️⃣ Column Reference
 
-        | Field | Priority | Accepted Names | Type |
-        |-------|----------|----------------|------|
-        | **Consumer ID** | Recommended | `consumer_id`, `id`, `cust_id`, `meter_id` | Text/Number |
-        | **Consumption** | ⚠️ Required | `consumption`, `kwh`, `units`, `energy`, `usage` | Number (kWh) |
-        | **Billing** | Recommended | `billing`, `bill`, `amount`, `charges` | Number (₹) |
-        | **Region** | Optional | `region`, `area`, `zone`, `district`, `feeder` | Text |
-        | **Category** | Optional | `category`, `type`, `consumer_type`, `tariff` | Text |
-        | **Sanctioned Load** | Optional | `sanctioned_load`, `contract_demand` | Number (kW) |
-        | **Actual Load** | Optional | `actual_load`, `measured_load`, `peak_load` | Number (kW) |
-        | **Meter Status** | Optional | `meter_status`, `status`, `meter_condition` | Text |
-        | **Theft Flag** | 🧠 LSTM | `flag`, `label`, `theft`, `is_theft`, `fraud`, `target` | 0 or 1 |
+    | Field | Priority | Accepted Names | Type |
+    |-------|----------|----------------|------|
+    | **Consumer ID** | Recommended | `consumer_id`, `id`, `cust_id`, `meter_id` | Text/Number |
+    | **Consumption** | ⚠️ Required | `consumption`, `kwh`, `units`, `energy`, `usage` | Number (kWh) |
+    | **Billing** | Recommended | `billing`, `bill`, `amount`, `charges` | Number (₹) |
+    | **Region** | Optional | `region`, `area`, `zone`, `district`, `feeder` | Text |
+    | **Category** | Optional | `category`, `type`, `consumer_type`, `tariff` | Text |
+    | **Sanctioned Load** | Optional | `sanctioned_load`, `contract_demand` | Number (kW) |
+    | **Actual Load** | Optional | `actual_load`, `measured_load`, `peak_load` | Number (kW) |
+    | **Meter Status** | Optional | `meter_status`, `status`, `meter_condition` | Text |
+    | **Theft Flag** | 🧠 LSTM | `flag`, `label`, `theft`, `is_theft`, `fraud`, `target` | 0 or 1 |
 
-        ---
+    ---
 
-        ##### 3️⃣ Time-Series Columns (for LSTM)
-        Include **≥ 7 sequential columns** like `day_1`, `day_2`, ... `day_30` for LSTM activation.
+    ##### 3️⃣ Time-Series Columns (for LSTM)
+    Include **≥ 7 sequential columns** like `day_1`, `day_2`, ... `day_30` for LSTM activation.
 
-        Accepted patterns: `day_N`, `d_N`, `reading_N`, `week_N`, `month_N`, dates as headers.
+    Accepted patterns: `day_N`, `d_N`, `reading_N`, `week_N`, `month_N`, dates as headers.
 
-        ---
+    ---
 
-        ##### 4️⃣ Theft Flag (Label)
-        | Value | Meaning |
-        |-------|---------|
-        | `0` | ✅ Normal / Honest consumer |
-        | `1` | 🚨 Confirmed or suspected theft |
+    ##### 4️⃣ Theft Flag (Label)
+    | Value | Meaning |
+    |-------|---------|
+    | `0` | ✅ Normal / Honest consumer |
+    | `1` | 🚨 Confirmed or suspected theft |
 
-        > **No labels?** The app auto-generates pseudo-labels using statistical heuristics.
+    > **No labels?** The app auto-generates pseudo-labels using statistical heuristics.
 
-        ---
+    ---
 
-        ##### 5️⃣ Processing Pipeline (Kocaman & Tümen, 2020)
-        1. **Data Cleaning** — NaN → mean, negatives → 0
-        2. **Min-Max Normalization** — Scale to [0, 1]
-        3. **Sliding Window** — 7-step windows for LSTM
-        4. **LSTM Training** — `LSTM(128) → Dropout(0.2) → Dense(64) → Dense(1)`
-        5. **5-Fold Cross-Validation** — Accuracy, Precision, Recall, F1
-        6. **Hybrid Scoring** — LSTM (40 pts) + Statistical (60 pts) = 0–100
+    ##### 5️⃣ Processing Pipeline (Kocaman & Tümen, 2020)
+    1. **Data Cleaning** — NaN → mean, negatives → 0
+    2. **Min-Max Normalization** — Scale to [0, 1]
+    3. **Sliding Window** — 7-step windows for LSTM
+    4. **LSTM Training** — `LSTM(128) → Dropout(0.2) → Dense(64) → Dense(1)`
+    5. **5-Fold Cross-Validation** — Accuracy, Precision, Recall, F1
+    6. **Hybrid Scoring** — LSTM (40 pts) + Statistical (60 pts) = 0–100
 
-        ---
+    ---
 
-        ##### 6️⃣ Best Practices
-        ✅ Use consistent column names, no merged cells
-        ✅ Provide ≥ 7 daily reading columns for LSTM
-        ✅ Label at least 10% as theft (Flag=1) for balanced training
-        ✅ Keep data on the first sheet
+    ##### 6️⃣ Best Practices
+    ✅ Use consistent column names, no merged cells
+    ✅ Provide ≥ 7 daily reading columns for LSTM
+    ✅ Label at least 10% as theft (Flag=1) for balanced training
+    ✅ Keep data on the first sheet
 
-        ❌ Don't use merged cells or blank header rows
-        ❌ Don't mix units (kWh and MWh)
-        ❌ Don't use Flag values other than 0 or 1
+    ❌ Don't use merged cells or blank header rows
+    ❌ Don't mix units (kWh and MWh)
+    ❌ Don't use Flag values other than 0 or 1
 
-        ---
+    ---
 
-        *Based on: Kocaman, B. & Tümen, V. (2020). Sadhana, 45, 286.*
-        *[View Paper ↗](https://www.ias.ac.in/article/fulltext/sadh/045/0286)*
-        """)
+    *Based on: Kocaman, B. & Tümen, V. (2020). Sadhana, 45, 286.*
+    *[View Paper ↗](https://www.ias.ac.in/article/fulltext/sadh/045/0286)*
+    """)
