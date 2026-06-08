@@ -188,6 +188,49 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+# ─── Load Logo Image ───
+import os
+import base64
+
+@st.cache_data
+def get_logo_base64():
+    logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
+    if os.path.exists(logo_path):
+        try:
+            with open(logo_path, "rb") as f:
+                encoded = base64.b64encode(f.read()).decode()
+            return f"data:image/png;base64,{encoded}"
+        except Exception:
+            pass
+    return None
+
+logo_b64 = get_logo_base64()
+if logo_b64:
+    st.markdown(f"""
+    <style>
+        .logo-container [data-testid="stBaseButton-secondary"] {{
+            background-image: url("{logo_b64}") !important;
+            background-size: contain !important;
+            background-repeat: no-repeat !important;
+            background-position: center !important;
+            width: 200px !important;
+            height: 145px !important;
+            color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            background-color: transparent !important;
+        }}
+        .logo-container [data-testid="stBaseButton-secondary"]:hover {{
+            background-color: transparent !important;
+            opacity: 0.85;
+        }}
+        .logo-container [data-testid="stBaseButton-secondary"] p {{
+            display: none !important;
+        }}
+    </style>
+    """, unsafe_allow_html=True)
+
+
 # ─── Session State Init ───
 if "engine" not in st.session_state:
     st.session_state.engine = None
@@ -370,8 +413,9 @@ with col_logo2:
     if st.button("⚡ ElectraGuard", key="logo_home_btn", use_container_width=True):
         st.session_state.page = "🏠 Home"
         st.rerun()
+    margin_style = "margin-top: 10px;" if logo_b64 else "margin-top: -12px;"
     st.markdown(
-        "<p style='color: #8892a8; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; margin-top: -12px; margin-bottom: 20px; font-weight: 600; text-align: center;'>AI-POWERED THEFT DETECTION</p>",
+        f"<p style='color: #8892a8; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; {margin_style} margin-bottom: 20px; font-weight: 600; text-align: center;'>AI-POWERED THEFT DETECTION</p>",
         unsafe_allow_html=True
     )
     st.markdown("</div>", unsafe_allow_html=True)
